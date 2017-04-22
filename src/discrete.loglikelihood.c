@@ -27,7 +27,7 @@ double res = 0;
 
 }/*DLIK*/
 
-double cdlik(SEXP x, SEXP y, double *nparams) {
+double cdlik(SEXP x, SEXP y, double *nparams) { //x是target，y表示父母 -mH(X|Y)
 
 int i = 0, j = 0, k = 0;
 int **n = NULL, *nj = NULL;
@@ -41,18 +41,18 @@ double res = 0;
 
   /* compute the joint frequency of x and y. */
   for (k = 0; k < num; k++)
-    n[xx[k] - 1][yy[k] - 1]++;
+    n[xx[k] - 1][yy[k] - 1]++;//将x和y的取值映射到n上，统计出它们的频率，num是样本数量
 
   /* compute the marginals. */
   for (i = 0; i < llx; i++)
     for (j = 0; j < lly; j++)
-      nj[j] += n[i][j];
+      nj[j] += n[i][j];//nj=sum_i n_ij ,相同的y，对x求和，最后得到每个y的频数
 
   /* compute the conditional entropy from the joint and marginal
        frequencies. */
   for (i = 0; i < llx; i++)
     for (j = 0; j < lly; j++)
-      if (n[i][j] != 0)
+      if (n[i][j] != 0) //这里是排除掉0的取值的!!
         res += (double)n[i][j] * log((double)n[i][j] / (double)nj[j]);
 
   /* we may want to store the number of parameters. */
@@ -78,20 +78,20 @@ SEXP nodes, node_t, parents, data_t, parent_vars, config;
   /* get the parents of the node. */
   parents = getListElement(node_t, "parents");
   /* extract the node's column from the data frame. */
-  data_t = c_dataframe_column(data, target, TRUE, FALSE);
+  data_t = c_dataframe_column(data, target, TRUE, FALSE); //data_t表示target data,从data中提取目标变量的数据
 
   if (length(parents) == 0) {
 
-    loglik = dlik(data_t, nparams);
+    loglik = dlik(data_t, nparams); //没有父母则直接计算该结点的似然度
 
   }/*THEN*/
   else {
 
     /* generate the configurations of the parents. */
-    PROTECT(parent_vars = c_dataframe_column(data, parents, FALSE, FALSE));
-    PROTECT(config = c_configurations(parent_vars, TRUE, TRUE));
+    PROTECT(parent_vars = c_dataframe_column(data, parents, FALSE, FALSE)); //得到该结点父母的数据
+    PROTECT(config = c_configurations(parent_vars, TRUE, TRUE));//config变量保存了父母结点的数据
     /* compute the log-likelihood. */
-    loglik = cdlik(data_t, config, nparams);
+    loglik = cdlik(data_t, config, nparams); //调用cdlik函数计算似然度
 
     UNPROTECT(2);
 
